@@ -225,25 +225,38 @@ user.name = nuevo
 const chat = global.db.data.chats[m.chat]
 const settings = global.db.data.settings[this.user.jid]  
 
-// LÍNEA CORREGIDA - USANDO safeReplace
-const isROwner = [...global.owner.map((number) => number)].map(v => {
-  const numStr = typeof v === 'string' ? v : String(v || '')
-  return safeReplace(numStr, /[^0-9]/g, "") + "@s.whatsapp.net"
-}).includes(m.sender)
+// ---- Normalización robusta de owners / prems ----
+const normalizeJid = (jid) => {
+  if (!jid) return ''
+  if (typeof jid === 'string' && jid.includes('@')) return jid
+  const digits = String(jid || '').replace(/[^0-9]/g, '')
+  return digits ? `${digits}@s.whatsapp.net` : ''
+}
 
-const isOwner = isROwner || m.fromMe
+const listToJids = (list) => {
+  if (!Array.isArray(list)) return []
+  return list.flatMap(item => {
+    // si el item es array tipo ['573..','Nombre', true] -> tomar item[0]
+    if (Array.isArray(item)) return normalizeJid(item[0]) ? [normalizeJid(item[0])] : []
+    return normalizeJid(item) ? [normalizeJid(item)] : []
+  }).filter(Boolean)
+}
 
-// CORREGIDO - USANDO safeReplace PARA PREMIUM
-const isPrems = isROwner || global.prems.map(v => {
-  const numStr = typeof v === 'string' ? v : String(v || '')
-  return safeReplace(numStr, /[^0-9]/g, "") + "@s.whatsapp.net"
-}).includes(m.sender) || user.premium == true
+const roownerList = listToJids(global.roowner || [])
+const rownerList = listToJids(global.rowner || [])
+const ownerList = listToJids(global.owner || [])
+const premsList = listToJids(global.prems || [])
 
-// CORREGIDO - USANDO safeReplace PARA OWNERS
-const isOwners = [this.user.jid, ...global.owner.map((number) => {
-  const numStr = typeof number === 'string' ? number : String(number || '')
-  return safeReplace(numStr, /[^0-9]/g, "") + "@s.whatsapp.net"
-})].includes(m.sender)
+// remitente normalizado (fallback a key.participant si hace falta)
+const senderJid = normalizeJid(m?.sender || (m?.key && (m.key.participant || m.key.remoteJid)) || '')
+
+// flags
+const isROwner = roownerList.includes(senderJid) || rownerList.includes(senderJid)
+const isOwner = isROwner || ownerList.includes(senderJid) || m.fromMe === true
+const isPrems = isROwner || premsList.includes(senderJid) || !!(user && user.premium)
+const isOwners = isOwner // compatibilidad con plugins que usan isOwners
+// ---- fin normalizacion ----
+
 
 if (opts["queque"] && m.text && !(isPrems)) {
 const queque = this.msgqueque, time = 1000 * 5
