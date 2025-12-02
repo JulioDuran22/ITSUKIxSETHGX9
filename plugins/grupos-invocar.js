@@ -31,7 +31,7 @@ const handler = async (m, { isOwner, isAdmin, conn, text, participants, args, co
     ? `「 🌸 𝑰𝑻𝑺𝑼𝑲𝑰𝒙𝑺𝑬𝑻𝑯𝑮𝑿9 dice 🌸 」\n✦ *${pesan}*`
     : `😡 ¡Baka! Presten atención todos de una vez, no me hagan repetirlo. 💢`;
 
-  // Texto decorado con marco kawaii 🌸
+  // Construir texto con menciones reales
   let teks = `
 ╭━━━〔 🌸 *INVOCACIÓN GENERAL* 🌸 〕━━━⬣
 ┃ 🌟 *Miembros totales:* ${participants.length} 🗣️
@@ -41,11 +41,12 @@ const handler = async (m, { isOwner, isAdmin, conn, text, participants, args, co
 ╭━━━〔 📌 *ETIQUETADOS* 📌 〕━━━⬣
 `;
 
+  const mentions = [];
   for (const mem of participants) {
-  const alias = global.db.data.users[mem.id]?.name || mem.name || mem.id.split('@')[0];
-  teks += `┃ ${customEmoji} @${alias}\n`;
-}
-
+    const alias = global.db.data.users[mem.id]?.name || mem.name || mem.id.split('@')[0];
+    teks += `┃ ${customEmoji} @${alias}\n`;
+    mentions.push(mem.id); // Agregar JID real para la mención
+  }
 
   teks += `╰━━━━━━━━━━━━━━━━━━━━⬣
 
@@ -54,15 +55,15 @@ const handler = async (m, { isOwner, isAdmin, conn, text, participants, args, co
 ╰━━━━━━━━━━━━━━━━━━━━⬣
 `;
 
-  // Imagen de Itsuki 🌸
   const imgUrl = 'https://files.catbox.moe/fqflxj.jpg';
 
   await conn.sendMessage(m.chat, { 
     image: { url: imgUrl }, 
     caption: teks, 
-    mentions: participants.map((a) => a.id) 
+    mentions // WhatsApp resaltará estos nombres en azul
   });
 };
+
 
 handler.help = ['invocar'];
 handler.tags = ['group'];
