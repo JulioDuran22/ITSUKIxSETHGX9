@@ -42,8 +42,10 @@ const handler = async (m, { isOwner, isAdmin, conn, text, participants, args, co
 `;
 
   for (const mem of participants) {
-    teks += `┃ ${customEmoji} @${mem.id.split('@')[0]}\n`;
-  }
+  const alias = global.db.data.users[mem.id]?.name || mem.name || mem.id.split('@')[0];
+  teks += `┃ ${customEmoji} @${alias}\n`;
+}
+
 
   teks += `╰━━━━━━━━━━━━━━━━━━━━⬣
 
