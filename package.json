@@ -48,6 +48,7 @@
     "lowdb": "^3.0.0",
     "jimp": "^0.16.13",
     "jsdom": "^20.0.1",
+    "acrcloud": "^1.4.0",
     "human-readable": "^0.2.1",
     "hispamemes": "^1.0.7",
     "megajs": "^1.1.3",
