@@ -1,4 +1,4 @@
-import { smsg } from "./lib/simple.js" 
+import { smsg } from "./lib/simple.js"
 import { format } from "util"
 import { fileURLToPath } from "url"
 import path, { join } from "path"
@@ -7,22 +7,6 @@ import chalk from "chalk"
 import fetch from "node-fetch"
 import ws from "ws"
 
-// SISTEMA GLOBAL FILENAME - INICIO
-if (typeof global.__filename !== 'function') {
-  global.__filename = (url, relative = false) => {
-    const filename = fileURLToPath(url);
-    return relative ? path.relative(process.cwd(), filename) : filename;
-  };
-}
-
-if (typeof global.__dirname !== 'function') {
-  global.__dirname = (url, relative = false) => {
-    const dirname = path.dirname(fileURLToPath(url));
-    return relative ? path.relative(process.cwd(), dirname) : dirname;
-  };
-}
-// SISTEMA GLOBAL FILENAME - FIN
-
 const { proto } = (await import("@whiskeysockets/baileys")).default
 const isNumber = x => typeof x === "number" && !isNaN(x)
 const delay = ms => isNumber(ms) && new Promise(resolve => setTimeout(function () {
@@ -30,106 +14,179 @@ clearTimeout(this)
 resolve()
 }, ms))
 
-// =============================================
-// SISTEMA MULTI-PREFIJO SIMPLIFICADO
-// =============================================
-
-// LISTA DE PREFIJOS (SOLO LOS QUE SOLICITASTE)
 const globalPrefixes = [
-  '.', ',', '!', '#', '$', '%', '&', '*',
-  '-', '_', '+', '=', '|', '\\', '/', '~',
-  '>', '<', '^', '?', ':', ';'
-];
+  '.', '/', '~', '#', ';'
+]
 
-// PREFIJO POR DEFECTO (REGEX MEJORADO)
-const defaultPrefixRegex = /^[.,!#$%&*+\-\-_=<>?/:;~\\|^]/;
-
-// FUNCIÓN MEJORADA PARA DETECTAR PREFIJOS
 const detectPrefix = (text, customPrefix = null) => {
-  if (!text || typeof text !== 'string') return null;
-  
-  const str2Regex = str => str.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
-  
-  // Si el plugin tiene prefijo personalizado
+  if (!text || typeof text !== 'string') return null
+
   if (customPrefix) {
-    // RegExp personalizado
-    if (customPrefix instanceof RegExp) {
-      const match = customPrefix.exec(text);
-      return match ? { match, prefix: match[0], regex: customPrefix } : null;
-    }
-    
-    // Array de prefijos personalizados
     if (Array.isArray(customPrefix)) {
       for (const prefix of customPrefix) {
-        if (prefix instanceof RegExp) {
-          const match = prefix.exec(text);
-          if (match) return { match, prefix: match[0], regex: prefix };
-        } else if (typeof prefix === 'string') {
-          const regex = new RegExp('^' + str2Regex(prefix));
-          const match = regex.exec(text);
-          if (match) return { match, prefix: match[0], regex };
+        if (text.startsWith(prefix)) {
+          return { 
+            match: prefix, 
+            prefix: prefix, 
+            type: 'custom'
+          }
         }
       }
-      return null;
     }
-    
-    // String personalizado
-    if (typeof customPrefix === 'string') {
-      const regex = new RegExp('^' + str2Regex(customPrefix));
-      const match = regex.exec(text);
-      return match ? { match, prefix: match[0], regex } : null;
+    else if (typeof customPrefix === 'string' && text.startsWith(customPrefix)) {
+      return { 
+        match: customPrefix, 
+        prefix: customPrefix, 
+        type: 'custom'
+      }
     }
   }
-  
-  // Usar prefijos globales por defecto
-  const match = defaultPrefixRegex.exec(text);
-  return match ? { match, prefix: match[0], regex: defaultPrefixRegex } : null;
-};
 
-// FUNCIÓN SAFE REPLACE PARA EVITAR ERRORES
-const safeReplace = (str, pattern, replacement) => {
-  if (typeof str !== 'string') return ''
-  return str.replace(pattern, replacement)
+  for (const prefix of globalPrefixes) {
+    if (text.startsWith(prefix)) {
+      return { 
+        match: prefix, 
+        prefix: prefix, 
+        type: 'global'
+      }
+    }
+  }
+
+  return null
 }
 
-// FUNCIÓN PARA NORMALIZAR NÚMEROS
-const normalizeNumber = (num) => {
-  if (typeof num === 'number') return num.toString()
-  if (typeof num !== 'string') return ''
-  return num.replace(/[^0-9]/g, "")
+const paisesCodigos = {
+    'arabia': ['+966', '966'],
+    'emiratos': ['+971', '971'],
+    'qatar': ['+974', '974'],
+    'kuwait': ['+965', '965'],
+    'bahrein': ['+973', '973'],
+    'oman': ['+968', '968'],
+    'egipto': ['+20', '20'],
+    'jordania': ['+962', '962'],
+    'siria': ['+963', '963'],
+    'irak': ['+964', '964'],
+    'yemen': ['+967', '967'],
+    'palestina': ['+970', '970'],
+    'libano': ['+961', '961'],
+    'india': ['+91', '91'],
+    'pakistan': ['+92', '92'],
+    'bangladesh': ['+880', '880'],
+    'afganistan': ['+93', '93'],
+    'nepal': ['+977', '977'],
+    'sri-lanka': ['+94', '94'],
+    'nigeria': ['+234', '234'],
+    'ghana': ['+233', '233'],
+    'kenia': ['+254', '254'],
+    'etiopia': ['+251', '251'],
+    'sudafrica': ['+27', '27'],
+    'senegal': ['+221', '221'],
+    'china': ['+86', '86'],
+    'indonesia': ['+62', '62'],
+    'filipinas': ['+63', '63'],
+    'vietnam': ['+84', '84'],
+    'tailandia': ['+66', '66'],
+    'rusia': ['+7', '7'],
+    'ucrania': ['+380', '380'],
+    'rumania': ['+40', '40'],
+    'polonia': ['+48', '48'],
+    'brasil': ['+55', '55'],
+    'colombia': ['+57', '57'],
+    'ecuador': ['+593', '593'],
+    'peru': ['+51', '51'],
+    'bolivia': ['+591', '591'],
+    'paraguay': ['+595', '595'],
+    'uruguay': ['+598', '598'],
+    'argentina': ['+54', '54'],
+    'chile': ['+56', '56'],
+    'paraguay': ['+595', '595'],
+    'uruguay': ['+598', '598'],
+}
+
+function detectCountryByNumber(number) {
+    const numStr = number.toString()
+    for (const [country, codes] of Object.entries(paisesCodigos)) {
+        for (const code of codes) {
+            if (numStr.startsWith(code.replace('+', ''))) {
+                return country
+            }
+        }
+    }
+    return 'local'
+}
+
+function getCountryName(code) {
+    const countryNames = {
+        'arabia': 'Arabia Saudita 🇸🇦',
+        'emiratos': 'Emiratos Árabes 🇦🇪',
+        'qatar': 'Qatar 🇶🇦',
+        'kuwait': 'Kuwait 🇰🇼',
+        'bahrein': 'Bahréin 🇧🇭',
+        'oman': 'Omán 🇴🇲',
+        'egipto': 'Egipto 🇪🇬',
+        'jordania': 'Jordania 🇯🇴',
+        'siria': 'Siria 🇸🇾',
+        'irak': 'Irak 🇮🇶',
+        'yemen': 'Yemen 🇾🇪',
+        'palestina': 'Palestina 🇵🇸',
+        'libano': 'Líbano 🇱🇧',
+        'india': 'India 🇮🇳',
+        'pakistan': 'Pakistán 🇵🇰',
+        'bangladesh': 'Bangladesh 🇧🇩',
+        'afganistan': 'Afganistán 🇦🇫',
+        'nepal': 'Nepal 🇳🇵',
+        'sri-lanka': 'Sri Lanka 🇱🇰',
+        'nigeria': 'Nigeria 🇳🇬',
+        'ghana': 'Ghana 🇬🇭',
+        'kenia': 'Kenia 🇰🇪',
+        'etiopia': 'Etiopía 🇪🇹',
+        'sudafrica': 'Sudáfrica 🇿🇦',
+        'senegal': 'Senegal 🇸🇳',
+        'china': 'China 🇨🇳',
+        'indonesia': 'Indonesia 🇮🇩',
+        'filipinas': 'Filipinas 🇵🇭',
+        'vietnam': 'Vietnam 🇻🇳',
+        'tailandia': 'Tailandia 🇹🇭',
+        'rusia': 'Rusia 🇷🇺',
+        'ucrania': 'Ucrania 🇺🇦',
+        'rumania': 'Rumania 🇷🇴',
+        'polonia': 'Polonia 🇵🇱',
+        'brasil': 'Brasil 🇧🇷',
+        'local': 'Local 🌍'
+    }
+    return countryNames[code] || code
+}
+
+async function isUserAdmin(conn, groupJid, userJid) {
+    try {
+        const metadata = await conn.groupMetadata(groupJid)
+        const participant = metadata.participants.find(p => p.id === userJid)
+        return participant && (participant.admin === 'admin' || participant.admin === 'superadmin')
+    } catch (error) {
+        return false
+    }
 }
 
 export async function handler(chatUpdate) {
 this.msgqueque = this.msgqueque || []
 this.uptime = this.uptime || Date.now()
-if (!chatUpdate) {
-return
-}
+if (!chatUpdate) return
 this.pushMessage(chatUpdate.messages).catch(console.error)
 let m = chatUpdate.messages[chatUpdate.messages.length - 1]
-if (!m) {
-return
-}
+if (!m) return
 if (global.db.data == null) await global.loadDatabase()
+
+if (m.key && m.key.fromMe) return
+
 try {
 m = smsg(this, m) || m
-if (!m) {
-return
-}
+if (!m) return
 m.exp = 0
 try {
-const user = global.db.data.users[m.sender]
+let user = global.db.data.users[m.sender]
 if (typeof user !== "object") global.db.data.users[m.sender] = {}
 if (user) {
-// SISTEMA DE REGISTRO - INICIO
-if (!("registered" in user)) user.registered = false
-if (!user.registered) {
 if (!("name" in user)) user.name = m.name
-if (!isNumber(user.age)) user.age = -1
-if (!isNumber(user.regTime)) user.regTime = -1
-}
-// SISTEMA DE REGISTRO - FIN
-
 if (!("exp" in user) || !isNumber(user.exp)) user.exp = 0
 if (!("coin" in user) || !isNumber(user.coin)) user.coin = 0
 if (!("bank" in user) || !isNumber(user.bank)) user.bank = 0
@@ -149,12 +206,7 @@ if (!("afk" in user) || !isNumber(user.afk)) user.afk = -1
 if (!("afkReason" in user)) user.afkReason = ""
 if (!("warn" in user) || !isNumber(user.warn)) user.warn = 0
 } else global.db.data.users[m.sender] = {
-// SISTEMA DE REGISTRO - INICIO
-registered: false,
 name: m.name,
-age: -1,
-regTime: -1,
-// SISTEMA DE REGISTRO - FIN
 exp: 0,
 coin: 0,
 bank: 0,
@@ -174,21 +226,29 @@ afk: -1,
 afkReason: "",
 warn: 0
 }
-const chat = global.db.data.chats[m.chat]
+let chat = global.db.data.chats[m.chat]
 if (typeof chat !== "object") global.db.data.chats[m.chat] = {}
 if (chat) {
 if (!("isBanned" in chat)) chat.isBanned = false
-if (!("isMute" in chat)) chat.isMute = false;
+if (!("isMute" in chat)) chat.isMute = false
 if (!("welcome" in chat)) chat.welcome = false
 if (!("sWelcome" in chat)) chat.sWelcome = ""
 if (!("sBye" in chat)) chat.sBye = ""
 if (!("detect" in chat)) chat.detect = true
-if (!("primaryBot" in chat)) chat.primaryBot = null
 if (!("modoadmin" in chat)) chat.modoadmin = false
 if (!("antiLink" in chat)) chat.antiLink = true
 if (!("nsfw" in chat)) chat.nsfw = false
-if (!("economy" in chat)) chat.economy = true;
+if (!("economy" in chat)) chat.economy = true
 if (!("gacha" in chat)) chat.gacha = true
+
+if (!("antiArabe" in chat)) chat.antiArabe = true
+if (!("antiExtranjero" in chat)) chat.antiExtranjero = false
+if (!("paisesBloqueados" in chat)) chat.paisesBloqueados = []
+if (!("rootowner" in chat)) chat.rootowner = false
+if (!("adminmode" in chat)) chat.adminmode = false
+if (!("prefix" in chat)) chat.prefix = null
+if (!("prefixes" in chat)) chat.prefixes = []
+
 } else global.db.data.chats[m.chat] = {
 isBanned: false,
 isMute: false,
@@ -196,14 +256,22 @@ welcome: false,
 sWelcome: "",
 sBye: "",
 detect: true,
-primaryBot: null,
 modoadmin: false,
 antiLink: true,
 nsfw: false,
 economy: true,
-gacha: true
+gacha: true,
+
+antiArabe: true,
+antiExtranjero: false,
+paisesBloqueados: [],
+rootowner: false,
+adminmode: false,
+prefix: null,
+prefixes: []
+
 }
-const settings = global.db.data.settings[this.user.jid]
+let settings = global.db.data.settings[this.user.jid]
 if (typeof settings !== "object") global.db.data.settings[this.user.jid] = {}
 if (settings) {
 if (!("self" in settings)) settings.self = false
@@ -224,27 +292,15 @@ user.name = nuevo
 }} catch {}
 const chat = global.db.data.chats[m.chat]
 const settings = global.db.data.settings[this.user.jid]  
-
-// LÍNEA CORREGIDA - USANDO safeReplace
-const isROwner = [...global.owner.map((number) => number)].map(v => {
-  const numStr = typeof v === 'string' ? v : String(v || '')
-  return safeReplace(numStr, /[^0-9]/g, "") + "@s.whatsapp.net"
-}).includes(m.sender)
-
+const isROwner = [...global.owner.map(([number]) => number)].map(v => v.replace(/[^0-9]/g, "") + "@s.whatsapp.net").includes(m.sender)
 const isOwner = isROwner || m.fromMe
 
-// CORREGIDO - USANDO safeReplace PARA PREMIUM
-const isPrems = isROwner || global.prems.map(v => {
-  const numStr = typeof v === 'string' ? v : String(v || '')
-  return safeReplace(numStr, /[^0-9]/g, "") + "@s.whatsapp.net"
-}).includes(m.sender) || user.premium == true
+if (chat?.rootowner && !isROwner) {
+    return
+}
 
-// CORREGIDO - USANDO safeReplace PARA OWNERS
-const isOwners = [this.user.jid, ...global.owner.map((number) => {
-  const numStr = typeof number === 'string' ? number : String(number || '')
-  return safeReplace(numStr, /[^0-9]/g, "") + "@s.whatsapp.net"
-})].includes(m.sender)
-
+const isPrems = isROwner || global.prems.map(v => v.replace(/[^0-9]/g, "") + "@s.whatsapp.net").includes(m.sender) || user.premium == true
+const isOwners = [this.user.jid, ...global.owner.map((number) => number + "@s.whatsapp.net")].includes(m.sender)
 if (opts["queque"] && m.text && !(isPrems)) {
 const queque = this.msgqueque, time = 1000 * 5
 const previousID = queque[queque.length - 1]
@@ -257,27 +313,164 @@ await delay(time)
 
 if (m.isBaileys) return
 m.exp += Math.ceil(Math.random() * 10)
+
+if (m.message && m.key && m.key.participant && m.key.participant === this.user.jid) return
+if (m.message && m.key && m.key.remoteJid && m.key.remoteJid === this.user.jid) return
+
+try {
+    if (m.message && m.key.remoteJid.endsWith('@g.us')) {
+        const text = m.text || ''
+        const sender = m.sender
+        const userNumber = sender.split('@')[0]
+
+        const userCountry = detectCountryByNumber(userNumber)
+        const countryName = getCountryName(userCountry)
+
+        if (chat.antiArabe) {
+            const paisesArabes = [
+                '+966', '966', 
+                '+971', '971', 
+                '+974', '974', 
+                '+965', '965', 
+                '+973', '973', 
+                '+968', '968', 
+                '+20', '20',   
+                '+962', '962', 
+                '+963', '963', 
+                '+964', '964', 
+                '+967', '967', 
+                '+970', '970', 
+                '+961', '961', 
+                '+218', '218', 
+                '+212', '212', 
+                '+216', '216', 
+                '+213', '213', 
+                '+222', '222', 
+                '+253', '253', 
+                '+252', '252', 
+                '+249', '249'  
+            ]
+
+            const esArabe = paisesArabes.some(code => userNumber.startsWith(code.replace('+', '')))
+
+            if (esArabe) {
+                const isUserAdm = await isUserAdmin(this, m.chat, sender)
+                if (!isUserAdm) {
+                    await this.groupParticipantsUpdate(m.chat, [sender], 'remove')
+
+                    await this.sendMessage(m.chat, { 
+                        text: `╭─「 🚫 *ANTI-ARABE ACTIVADO* 🚫 」
+│ 
+│ *ⓘ Usuario árabe detectado y expulsado*
+│ 
+│ 📋 *Información:*
+│ ├ Usuario: *Arabe*
+│ ├ País: Número árabe detectado
+│ ├ Razón: Anti-Arabe activado
+│ ├ Acción: Expulsado del grupo
+│ └ Mensaje: Eliminado
+│ 
+│ 🌍 *Países bloqueados:*
+│ ├ Arabia Saudita, Emiratos, Qatar
+│ ├ Kuwait, Bahréin, Omán, Egipto
+│ ├ Jordania, Siria, Irak, Yemen
+│ ├ Palestina, Líbano y +10 más
+│ 
+│ 💡 *Para desactivar:*
+│ └ Use el comando .antiarabe off
+╰─◉`.trim(),
+                        mentions: [sender]
+                    })
+                    return
+                }
+            }
+        }
+
+        if (chat.antiExtranjero || (chat.paisesBloqueados && chat.paisesBloqueados.length > 0)) {
+            const paisBloqueado = chat.paisesBloqueados.includes(userCountry)
+
+            if (chat.antiExtranjero && userCountry !== 'local') {
+                const isUserAdm = await isUserAdmin(this, m.chat, sender)
+                if (!isUserAdm) {
+                    await this.groupParticipantsUpdate(m.chat, [sender], 'remove')
+
+                    await this.sendMessage(m.chat, {
+                        text: `╭─「 🚫 *ANTI-EXTRANJERO ACTIVADO* 🚫 」
+│ 
+│ *ⓘ Usuario extranjero detectado y expulsado*
+│ 
+│ 📋 *Información:*
+│ ├ Usuario: Extranjero
+│ ├ País: ${countryName}
+│ ├ Razón: Anti-Extranjero activado
+│ ├ Acción: Expulsado del grupo
+│ 
+│ 🌍 *Configuración actual:*
+│ ├ Solo usuarios locales permitidos
+│ ├ Países bloqueados: Todos excepto local
+│ 
+│ 💡 *Para desactivar:*
+│ └ Use el comando .antiextranjero off
+╰─◉`.trim(),
+                        mentions: [sender]
+                    })
+                    return
+                }
+            }
+
+            if (paisBloqueado) {
+                const isUserAdm = await isUserAdmin(this, m.chat, sender)
+                if (!isUserAdm) {
+                    await this.groupParticipantsUpdate(m.chat, [sender], 'remove')
+
+                    await this.sendMessage(m.chat, {
+                        text: `╭─「 🚫 *PAÍS BLOQUEADO* 🚫 」
+│ 
+│ *ⓘ Usuario de país bloqueado detectado*
+│ 
+│ 📋 *Información:*
+│ ├ Usuario: ${userCountry}
+│ ├ País: ${countryName}
+│ ├ Razón: País en lista de bloqueados
+│ ├ Acción: Expulsado del grupo
+│ 
+│ 📋 *Lista de países bloqueados:*
+│ ${chat.paisesBloqueados.map(p => `├ ${getCountryName(p)}`).join('\n')}
+│ 
+│ 💡 *Para modificar:*
+│ └ Use .bloquepais add/remove/list
+╰─◉`.trim(),
+                        mentions: [sender]
+                    })
+                    return
+                }
+            }
+        }
+    }
+} catch (error) {
+    console.error('Error en sistema anti-arabe/anti-extranjero:', error)
+}
+
 let usedPrefix
-
-// USO DE GLOBAL.__DIRNAME MEJORADO
-const ___dirname = global.__dirname(import.meta.url, false) || path.join(path.dirname(fileURLToPath(import.meta.url)), "./plugins")
-
-const groupMetadata = m.isGroup ? { ...(conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}), ...(((conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants) && { participants: ((conn.chats[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants || []).map(p => ({ ...p, id: p.jid, jid: p.jid, lid: p.lid })) }) } : {}
+const groupMetadata = m.isGroup ? { ...(this.chats?.[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}), ...(((this.chats?.[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants) && { participants: ((this.chats?.[m.chat]?.metadata || await this.groupMetadata(m.chat).catch(_ => null) || {}).participants || []).map(p => ({ ...p, id: p.jid, jid: p.jid, lid: p.lid })) }) } : {}
 const participants = ((m.isGroup ? groupMetadata.participants : []) || []).map(participant => ({ id: participant.jid, jid: participant.jid, lid: participant.lid, admin: participant.admin }))
-const userGroup = (m.isGroup ? participants.find((u) => conn.decodeJid(u.jid) === m.sender) : {}) || {}
-const botGroup = (m.isGroup ? participants.find((u) => conn.decodeJid(u.jid) == this.user.jid) : {}) || {}
+const userGroup = (m.isGroup ? participants.find((u) => this.decodeJid(u.jid) === m.sender) : {}) || {}
+const botGroup = (m.isGroup ? participants.find((u) => this.decodeJid(u.jid) == this.user.jid) : {}) || {}
 const isRAdmin = userGroup?.admin == "superadmin" || false
 const isAdmin = isRAdmin || userGroup?.admin == "admin" || false
+
+if (chat?.adminmode && !isAdmin && !isROwner) {
+    return
+}
+
 const isBotAdmin = botGroup?.admin || false
 
+const ___dirname = path.join(path.dirname(fileURLToPath(import.meta.url)), "./plugins")
 for (const name in global.plugins) {
 const plugin = global.plugins[name]
 if (!plugin) continue
 if (plugin.disabled) continue
-
-// USO DE GLOBAL.__FILENAME MEJORADO
-const __filename = global.__filename(import.meta.url, false) || join(___dirname, name)
-
+const __filename = join(___dirname, name)
 if (typeof plugin.all === "function") {
 try {
 await plugin.all.call(this, m, {
@@ -296,15 +489,46 @@ if (plugin.tags && plugin.tags.includes("admin")) {
 continue
 }
 
-// =============================================
-// SISTEMA MULTI-PREFIJO IMPLEMENTADO
-// =============================================
-const pluginPrefix = plugin.customPrefix || globalPrefixes
-const prefixMatch = detectPrefix(m.text, pluginPrefix)
+const chatPrefixes = chat?.prefixes || []
+const chatPrefix = chat?.prefix || null
+
+let allPrefixes = []
+if (chatPrefixes.length > 0) {
+    allPrefixes = [...chatPrefixes]
+}
+
+if (chatPrefix) {
+    allPrefixes = [chatPrefix, ...allPrefixes]
+}
+
+allPrefixes = [...allPrefixes, ...globalPrefixes]
+
+allPrefixes = [...new Set(allPrefixes)]
+
+const prefixMatch = detectPrefix(m.text || '', allPrefixes)
+
+let match
+if (prefixMatch) {
+    match = [prefixMatch.prefix]
+} else {
+    const strRegex = (str) => String(str || '').replace(/[|\\{}()[\]^$+*?.]/g, "\\$&")
+    const pluginPrefix = plugin.customPrefix || this.prefix || global.prefix
+    match = (pluginPrefix instanceof RegExp ?
+    [[pluginPrefix.exec(m.text || ''), pluginPrefix]] :
+    Array.isArray(pluginPrefix) ?
+    pluginPrefix.map(prefix => {
+    const regex = prefix instanceof RegExp ?
+    prefix : new RegExp(strRegex(prefix))
+    return [regex.exec(m.text || ''), regex]
+    }) : typeof pluginPrefix === "string" ?
+    [[new RegExp(strRegex(pluginPrefix)).exec(m.text || ''), new RegExp(strRegex(pluginPrefix))]] :
+    [[[], new RegExp]]).find(prefix => prefix[1])
+}
 
 if (typeof plugin.before === "function") {
 if (await plugin.before.call(this, m, {
-match: prefixMatch ? [prefixMatch.match, prefixMatch.regex] : [],
+match,
+prefixMatch,
 conn: this,
 participants,
 groupMetadata,
@@ -322,14 +546,23 @@ __filename,
 user,
 chat,
 settings
-})) {
+}))
 continue
-}}
+}
 if (typeof plugin !== "function") {
 continue
 }
-if (prefixMatch && (usedPrefix = prefixMatch.prefix)) {
-const noPrefix = m.text.replace(usedPrefix, "")
+
+let usedPrefixTemp = ''
+if (prefixMatch && prefixMatch.prefix) {
+    usedPrefixTemp = prefixMatch.prefix
+} else if (match && match[0] && match[0][0]) {
+    usedPrefixTemp = match[0][0]
+}
+
+if (usedPrefixTemp) {
+usedPrefix = usedPrefixTemp
+const noPrefix = (m.text || '').replace(usedPrefix, "")
 let [command, ...args] = noPrefix.trim().split(" ").filter(v => v)
 args = args || []
 let _args = noPrefix.trim().split(" ").slice(1)
@@ -344,40 +577,32 @@ cmd.test(command) : cmd === command) :
 typeof plugin.command === "string" ?
 plugin.command === command : false
 global.comando = command
+
 if (!isOwners && settings.self) return
 if ((m.id.startsWith("NJX-") || (m.id.startsWith("BAE5") && m.id.length === 16) || (m.id.startsWith("B24E") && m.id.length === 20))) return
-if (global.db.data.chats[m.chat].primaryBot && global.db.data.chats[m.chat].primaryBot !== this.user.jid) {
-const primaryBotConn = global.conns.find(conn => conn.user.jid === global.db.data.chats[m.chat].primaryBot && conn.ws.socket && conn.ws.socket.readyState !== ws.CLOSED)
-const participants = m.isGroup ? (await this.groupMetadata(m.chat).catch(() => ({ participants: [] }))).participants : []
-const primaryBotInGroup = participants.some(p => p.jid === global.db.data.chats[m.chat].primaryBot)
-if (primaryBotConn && primaryBotInGroup || global.db.data.chats[m.chat].primaryBot === global.conn.user.jid) {
-throw !1
-} else {
-global.db.data.chats[m.chat].primaryBot = null
-}} else {
-}
+
 if (!isAccept) continue
 m.plugin = name
-if (isAccept) { global.db.data.users[m.sender].commands = (global.db.data.users[m.sender].commands || 0) + 1 }
+global.db.data.users[m.sender].commands++
 if (chat) {
 const botId = this.user.jid
-const primaryBotId = chat.primaryBot
 if (name !== "group-banchat.js" && chat?.isBanned && !isROwner) {
-if (!primaryBotId || primaryBotId === botId) {
-const aviso = `El bot *${botname}* está desactivado en este grupo\n\n> ✦ Un *administrador* puede activarlo con el comando:\n> » *${usedPrefix}bot on*`.trim()
+const aviso = `El bot ${global.botname || 'Bot'} está desactivado en este grupo\n\n Un administrador puede activarlo con el comando:\n ${usedPrefix}bot on`.trim()
 await m.reply(aviso)
 return
-}}
+}
 if (m.text && user.banned && !isROwner) {
-const mensaje = `Estas baneado/a, no puedes usar comandos en este bot!\n\n> ● *Razón ›* ${user.bannedReason}\n\n> ● Si este Bot es cuenta oficial y tienes evidencia que respalde que este mensaje es un error, puedes exponer tu caso con un moderador.`.trim()
-if (!primaryBotId || primaryBotId === botId) {
+const mensaje = `Estas baneado/a, no puedes usar comandos en este bot\n\n Razón ${user.bannedReason}\n\n Si este Bot es cuenta oficial y tienes evidencia que respalde que este mensaje es un error, puedes exponer tu caso con un moderador`.trim()
 m.reply(mensaje)
 return
-}}}
+}}
 if (!isOwners && !m.chat.endsWith('g.us') && !/code|p|ping|qr|estado|status|infobot|botinfo|report|reportar|invite|join|logout|suggest|help|menu/gim.test(m.text)) return
+
 const adminMode = chat.modoadmin || false
-const wa = plugin.botAdmin || plugin.admin || plugin.group || plugin || noPrefix || pluginPrefix || m.text.slice(0, 1) === pluginPrefix || plugin.command
+const wa = plugin.botAdmin || plugin.admin || plugin.group || plugin || noPrefix || usedPrefix || m.text.slice(0, 1) === usedPrefix || plugin.command
+
 if (adminMode && !isOwner && m.isGroup && !isAdmin && wa) return
+
 if (plugin.rowner && plugin.owner && !(isROwner || isOwner)) {
 fail("owner", m, this)
 continue
@@ -394,32 +619,23 @@ if (plugin.premium && !isPrems) {
 fail("premium", m, this)
 continue
 }
-
-// SISTEMA DE REGISTRO - VALIDACIÓN
-if (plugin.register == true && user.registered == false) {
-fail("unreg", m, this)
-continue
-}
-// SISTEMA DE REGISTRO - FIN
-
 if (plugin.group && !m.isGroup) {
 fail("group", m, this)
 continue
-} else if (plugin.botAdmin && !isBotAdmin) {
+} 
+if (plugin.botAdmin && !isBotAdmin) {
 fail("botAdmin", m, this)
 continue
-} else if (plugin.admin && !isAdmin) {
+} 
+if (plugin.admin && !isAdmin) {
 fail("admin", m, this)
-continue
-}
-if (plugin.private && m.isGroup) {
-fail("private", m, this)
 continue
 }
 m.isCommand = true
 m.exp += plugin.exp ? parseInt(plugin.exp) : 10
 let extra = {
-match: prefixMatch ? [prefixMatch.match, prefixMatch.regex] : [],
+match,
+prefixMatch,
 usedPrefix,
 noPrefix,
 _args,
@@ -463,9 +679,9 @@ const quequeIndex = this.msgqueque.indexOf(m.id || m.key.id)
 if (quequeIndex !== -1)
 this.msgqueque.splice(quequeIndex, 1)
 }
-let user, stats = global.db.data.stats
+let user = global.db.data.users[m.sender]
 if (m) {
-if (m.sender && (user = global.db.data.users[m.sender])) {
+if (m.sender && user) {
 user.exp += m.exp
 }}
 try {
@@ -474,33 +690,39 @@ if (!opts["noprint"]) await (await import("./lib/print.js")).default(m, this)
 console.warn(err)
 console.log(m.message)
 }}}
+
 global.dfail = (type, m, conn) => {
 
 let edadaleatoria = ['10', '28', '20', '40', '18', '21', '15', '11', '9', '17', '25'].getRandom()
 let user2 = m.pushName || 'Anónimo'
 let verifyaleatorio = ['registrar', 'reg', 'verificar', 'verify', 'register'].getRandom()
 
-// OBJETO MSG CORREGIDO - SIN ERROR DE SINTAXIS
 const msg = {
-    rowner: '> `ⓘ ᥱs𝗍ᥱ ᥴ᥆mᥲᥒძ᥆ s᥆ᥣ᥆ ᥣ᥆ ⍴ᥙᥱძᥱ ᥙ𝗍іᥣіzᥲr ᥱᥣ ⍴r᥆⍴іᥱ𝗍ᥲrі᥆ ძᥱᥣ ᑲ᥆𝗍.`',
-    owner: '> `ⓘ ᥱs𝗍ᥱ ᥴ᥆mᥲᥒძ᥆ s᥆ᥣ᥆ sᥱ ⍴ᥙᥱძᥱ ᥙsᥲr ⍴᥆r ᥱᥣ ⍴r᥆⍴іᥱ𝗍ᥲrі᥆ ძᥱᥣ ᑲ᥆𝗍.`',
-    mods: '> `ⓘ ᥱs𝗍ᥱ ᥴ᥆mᥲᥒძ᥆ s᥆ᥣ᥆ sᥱ ⍴ᥙᥱძᥱ ᥙsᥲr ⍴᥆r ᥱᥣ ⍴r᥆⍴іᥱ𝗍ᥲrі᥆ ძᥱᥣ ᑲ᥆𝗍.`',
-    premium: '> `ⓘ ᥱs𝗍ᥱ ᥴ᥆mᥲᥒძ᥆ s᥆ᥣ᥆ sᥱ ⍴ᥙᥱძᥱ ᥙ𝗍іᥣіzᥲr ⍴᥆r ᥙsᥙᥲrі᥆s ⍴rᥱmіᥙm, ᥡ ⍴ᥲrᥲ mі ᥴrᥱᥲძ᥆r.`',
-    group: '> `ⓘ ᥱs𝗍ᥱ ᥴ᥆mᥲᥒძ᥆ s᥆ᥣ᥆ sᥱ ⍴ᥙᥱძᥱ ᥙsᥲr ᥱᥒ grᥙ⍴᥆s.`',
-    private: '> `ⓘ ᥱs𝗍ᥱ ᥴ᥆mᥲᥒძ᥆ s᥆ᥣ᥆ sᥱ ⍴ᥙᥱძᥱ ᥙsᥲr ᥲᥣ ᥴһᥲ𝗍 ⍴rі᥎ᥲძ᥆ ძᥱᥣ ᑲ᥆𝗍.`',
-    admin: '> `ⓘ ᥱs𝗍ᥱ ᥴ᥆mᥲᥒძ᥆ s᥆ᥣ᥆ ᥱs ⍴ᥲrᥲ ᥲძmіᥒs ძᥱᥣ grᥙ⍴᥆.`',
-    botAdmin: '> `ⓘ ⍴ᥲrᥲ ⍴᥆ძᥱr ᥙsᥲr ᥱs𝗍ᥱ ᥴ᥆mᥲᥒძ᥆ ᥱs ᥒᥱᥴᥱsᥲrі᥆ 𝗊ᥙᥱ ᥡ᥆ sᥱᥲ ᥲძmіᥒ.`',
-    unreg: '> `ⓘ ᥒᥱᥴᥱsі𝗍ᥲs ᥱs𝗍ᥲr rᥱgіs𝗍rᥲძ᥆(ᥲ) ⍴ᥲrᥲ ᥙsᥲr ᥱs𝗍ᥱ ᥴ᥆mᥲᥒძ᥆, ᥱsᥴrіᑲᥱ #rᥱg ⍴ᥲrᥲ rᥱgіs𝗍rᥲr𝗍ᥱ.`',
-    restrict: '> `ⓘ ᥴ᥆mᥲᥒძ᥆ rᥱs𝗍rіᥒgіძ᥆ ⍴᥆r ძᥱᥴіsі᥆ᥒ ძᥱᥣ ⍴r᥆⍴іᥱ𝗍ᥲrі᥆ ძᥱᥣ ᑲ᥆𝗍.`'
-}[type];
-
-if (msg) return conn.reply(m.chat, msg, m).then(_ => m.react('✖️'))
+    retirado: 'Este comando solo lo pueden usar los owners retirados del bot',
+    rowner: '*\˙˚ʚ₍ ᐢ.👑.ᐢ ₎ɞ˚ ᥱs𝗍ᥱ ᥴ᥆mᥲᥒძ᥆ s᥆ᥣ᥆ ⍴ᥙᥱძᥱ ᥙ𝗍іᥣіzᥲr ⍴᥆r ᥱᥣ ⍴r᥆⍴іᥱ𝗍ᥲrі᥆ ძᥱᥣ ᑲ᥆𝗍.\*',
+    owner: '*\˙˚ʚ₍ ᐢ.👤.ᐢ ₎ɞ˚ ᥱs𝗍ᥱ ᥴ᥆mᥲᥒძ᥆ s᥆ᥣ᥆ sᥱ ⍴ᥙᥱძᥱ ᥙsᥲr ⍴᥆r ᥱᥣ ⍴r᥆⍴іᥱ𝗍ᥲrі᥆ ძᥱᥣ ᑲ᥆𝗍.\*',
+    mods: '*\˙˚ʚ₍ ᐢ.🍃.ᐢ ₎ɞ˚ ᥱs𝗍ᥱ ᥴ᥆mᥲᥒძ᥆ s᥆ᥣ᥆ sᥱ ⍴ᥙᥱძᥱ ᥙsᥲr ⍴᥆r ᥱᥣ ⍴r᥆⍴іᥱ𝗍ᥲrі᥆ ძᥱᥣ ᑲ᥆𝗍.\*',
+    premium: '*\˙˚ʚ₍ ᐢ.💎.ᐢ ₎ɞ˚ ᥱs𝗍ᥱ ᥴ᥆mᥲᥒძ᥆ s᥆ᥣ᥆ sᥱ ⍴ᥙᥱძᥱ ᥙ𝗍іᥣіzᥲr ⍴᥆r ᥙsᥙᥲrі᥆s ⍴rᥱmіᥙm, ᥡ ⍴ᥲrᥲ mі ᥴrᥱᥲძ᥆r.\*',
+    group: '*\˙˚ʚ₍ ᐢ.📚.ᐢ ₎ɞ˚ ᥱs𝗍ᥱ ᥴ᥆mᥲᥒძ᥆ s᥆ᥣ᥆ sᥱ ⍴ᥙᥱძᥱ ᥙsᥲr ᥱᥒ grᥙ⍴᥆s.\`*',
+    private: '*\˙˚ʚ₍ ᐢ.📲.ᐢ ₎ɞ˚ ᥱs𝗍ᥱ ᥴ᥆mᥲᥒძ᥆ s᥆ᥣ᥆ sᥱ ⍴ᥙᥱძᥱ ᥙsᥲr ᥲᥣ ᥴһᥲ𝗍 ⍴rі᥎ᥲძ᥆ ძᥱᥣ ᑲ᥆𝗍.\*',
+    admin: '*\˙˚ʚ₍ ᐢ.🔱.ᐢ ₎ɞ˚ ᥱs𝗍ᥱ ᥴ᥆mᥲᥒძ᥆ s᥆ᥣ᥆ sᥱs ⍴ᥲrᥲ ᥲძmіᥒs ძᥱᥣ grᥙ⍴᥆.\`*',
+    botAdmin: '*\˙˚ʚ₍ ᐢ.🌟.ᐢ ₎ɞ˚ ⍴ᥲrᥲ ⍴᥆ძᥱr ᥙsᥲr ᥱs𝗍ᥱ ᥴ᥆mᥲᥒძ᥆ ᥱs ᥒᥱᥴᥱsᥲrіᥲr 𝗊ᥙᥱ ᥡ᥆ sᥱᥲ ᥲძmіᥒ.\*',
+    unreg: '*\˙˚ʚ₍ ᐢ.📋.ᐢ ₎ɞ˚ ᥒᥱᥴᥱsі𝗍ᥲs ᥱs𝗍ᥲr rᥱgіs𝗍rᥲძ᥆(ᥲ) ⍴ᥲrᥲ ᥙsᥲr ᥱs𝗍ᥱ ᥴ᥆mᥲᥒძ᥆, ᥱsᥴrіᑲᥲr #rᥱg ⍴ᥲrᥲ rᥱgіs𝗍rᥲr𝗍ᥱ.\*',
+    restrict: '*\˙˚ʚ₍ ᐢ.⚙️.ᐢ ₎ɞ˚ ᥴ᥆mᥲᥒძ᥆ rᥱs𝗍rіᥒgіძ᥆ ⍴ᥲr ძᥱᥴіsіᥲr ძᥱᥣ ⍴r᥆⍴іᥲ𝗍ᥲrі᥆ ძᥱᥣ ᑲ᥆𝗍.\*'
+  }[type];
+if (msg) return conn.reply(m.chat, msg, m, global.rcanal).then(_ => m.react('✖️'))
 }
 
-// USO FINAL DE GLOBAL.__FILENAME PARA WATCHFILE
-let file = global.__filename(import.meta.url, true)
+let file = fileURLToPath(import.meta.url)
 watchFile(file, async () => {
 unwatchFile(file)
 console.log(chalk.magenta("Se actualizo 'handler.js'"))
 if (global.reloadHandler) console.log(await global.reloadHandler())
 })
+
+global.detectPrefix = detectPrefix
+global.globalPrefixes = globalPrefixes
+
+export default { 
+    handler
+}

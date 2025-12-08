@@ -38,7 +38,7 @@ const handler = async (m, {conn, text, participants, isOwner, isAdmin}) => {
     const masss = more.repeat(850);
 
     // Aquí construimos el texto mostrado (htextos) con la firma
-    const signature = '\n\n> _© 𝑰𝑻𝑺𝑼𝑲𝑰𝒙𝑺𝑬𝑻𝑯𝑮𝑿9 _';
+    const signature = '\n\n> 💓 𝑰𝑻𝑺𝑼𝑲𝑰𝒙𝑺𝑬𝑻𝑯𝑮𝑿9 💓';
     const userText = (text && text.trim()) ? text : '*🌟 Debes enviar un texto para hacer un tag.*';
     const htextos = `${userText}${signature}`;
 

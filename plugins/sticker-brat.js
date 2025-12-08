@@ -6,8 +6,13 @@ const path = require('path');
 const { exec } = require('child_process');
 const util = require('util');
 const execAsync = util.promisify(exec);
+const { Sticker, StickerTypes } = require('wa-sticker-formatter');
 
 let handler = async (m, { conn, text, args, usedPrefix, command }) => {
+    //Fixieada por ZzawX
+    
+    let tempStickerPath;
+    
     try {
         await m.react('🕒');
 
@@ -27,76 +32,102 @@ let handler = async (m, { conn, text, args, usedPrefix, command }) => {
             fs.mkdirSync(tempDir, { recursive: true });
         }
 
-        const tempVideoPath = path.join(tempDir, `brat_video_${Date.now()}.mp4`);
-        const tempStickerPath = path.join(tempDir, `brat_sticker_${Date.now()}.webp`);
+        tempStickerPath = path.join(tempDir, `brat_sticker_${Date.now()}.webp`);
 
-        const mayApiUrl = `https://mayapi.ooguy.com/bratvideo`;
+        const mayApiUrl = `https://mayapi.ooguy.com/brat`;
+        
+        const fallbackApiUrl = `https://api.siputzx.my.id/api/m/brat?text=${encodeURIComponent(text)}`;
 
-        let mediaData;
-
-        const apiResponse = await axios({
-            method: 'GET',
-            url: mayApiUrl,
-            params: {
-                apikey: 'may-051b5d3d',
-                text: text
-            },
-            timeout: 15000,
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept': 'application/json, */*'
-            }
-        });
-
-        if (!apiResponse.data || typeof apiResponse.data !== 'object' || !apiResponse.data.status) {
-            throw new Error('Error en la API');
-        }
-
-        let videoUrl;
-        if (typeof apiResponse.data.result === 'string') {
-            videoUrl = apiResponse.data.result;
-        } else if (apiResponse.data.result && apiResponse.data.result.url) {
-            videoUrl = apiResponse.data.result.url;
-        } else if (apiResponse.data.url) {
-            videoUrl = apiResponse.data.url;
-        } else {
-            throw new Error('No se encontró URL de video');
-        }
-
-        const videoResponse = await axios({
-            method: 'GET',
-            url: videoUrl,
-            responseType: 'arraybuffer',
-            timeout: 20000,
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept': '*/*'
-            }
-        });
-
-        mediaData = Buffer.from(videoResponse.data);
-
-        if (!mediaData || mediaData.length < 100) {
-            throw new Error('Datos insuficientes');
-        }
-
-        fs.writeFileSync(tempVideoPath, mediaData);
+        let imageData;
+        let apiUsed = "MayAPI";
 
         try {
-            const ffmpegCommand = `ffmpeg -i "${tempVideoPath}" -vcodec libwebp -filter:v fps=fps=20 -lossless 0 -compression_level 3 -qscale 50 -loop 0 -preset default -an -vsync 0 -s 512:512 "${tempStickerPath}" -y`;
-            await execAsync(ffmpegCommand, { timeout: 30000 });
-        } catch (conversionError) {
-            await conn.sendMessage(m.chat, {
-                video: mediaData
-            }, { quoted: m });
+            const apiResponse = await axios({
+                method: 'GET',
+                url: mayApiUrl,
+                params: {
+                    apikey: 'may-f53d1d49',
+                    text: text
+                },
+                timeout: 10000,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Accept': 'application/json, */*'
+                }
+            });
+
+            if (!apiResponse.data || typeof apiResponse.data !== 'object') {
+                throw new Error('Respuesta de API no es JSON válido');
+            }
+
+            if (!apiResponse.data.status) {
+                throw new Error(`Error en API: ${apiResponse.data.message || 'Estado falso'}`);
+            }
+
+            if (!apiResponse.data.result || !apiResponse.data.result.url) {
+                throw new Error('No se encontró URL de imagen en la respuesta');
+            }
+
+            const imageUrl = apiResponse.data.result.url;
+
+            const imageResponse = await axios({
+                method: 'GET',
+                url: imageUrl,
+                responseType: 'arraybuffer',
+                timeout: 10000,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                    'Accept': 'image/webp,image/png,image/jpeg,*/*'
+                }
+            });
+
+            imageData = Buffer.from(imageResponse.data);
+
+            const buffer = imageData;
+            const isWebP = buffer.slice(0, 4).toString() === 'RIFF' && buffer.slice(8, 12).toString() === 'WEBP';
             
-            setTimeout(() => {
-                try {
-                    if (fs.existsSync(tempVideoPath)) fs.unlinkSync(tempVideoPath);
-                } catch (e) {}
-            }, 30000);
-            
-            return;
+            if (!isWebP) {
+                const ffmpegCommand = `ffmpeg -i pipe:0 -vcodec libwebp -lossless 0 -compression_level 3 -qscale 70 -loop 0 -preset ultrafast -an -vsync 0 -s 512:512 "${tempStickerPath}" -y`;
+                await execAsync(`echo "${buffer.toString('base64')}" | base64 -d | ${ffmpegCommand}`, { 
+                    timeout: 15000,
+                    shell: '/bin/bash'
+                });
+            } else {
+                fs.writeFileSync(tempStickerPath, buffer);
+            }
+
+        } catch (primaryError) {
+            try {
+                const fallbackResponse = await axios({
+                    method: 'GET',
+                    url: fallbackApiUrl,
+                    responseType: 'arraybuffer',
+                    timeout: 10000,
+                    maxRedirects: 5,
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                        'Accept': 'image/webp,image/*,*/*'
+                    }
+                });
+
+                const fallbackBuffer = Buffer.from(fallbackResponse.data);
+                const isFallbackWebP = fallbackBuffer.slice(0, 4).toString() === 'RIFF' && fallbackBuffer.slice(8, 12).toString() === 'WEBP';
+                
+                if (isFallbackWebP) {
+                    fs.writeFileSync(tempStickerPath, fallbackBuffer);
+                } else {
+                    const ffmpegCommand = `ffmpeg -i pipe:0 -vcodec libwebp -lossless 0 -compression_level 3 -qscale 70 -loop 0 -preset ultrafast -an -vsync 0 -s 512:512 "${tempStickerPath}" -y`;
+                    await execAsync(`echo "${fallbackBuffer.toString('base64')}" | base64 -d | ${ffmpegCommand}`, { 
+                        timeout: 15000,
+                        shell: '/bin/bash'
+                    });
+                }
+
+                apiUsed = "API Secundaria";
+
+            } catch (fallbackError) {
+                throw new Error(`Ambas APIs fallaron`);
+            }
         }
 
         if (!fs.existsSync(tempStickerPath)) {
@@ -105,29 +136,42 @@ let handler = async (m, { conn, text, args, usedPrefix, command }) => {
 
         await m.react('✅️');
 
+        const username = m.pushName || m.sender.split('@')[0] || "Usuario";
+        
         const stickerBuffer = fs.readFileSync(tempStickerPath);
-        await conn.sendMessage(m.chat, {
-            sticker: stickerBuffer
-        }, { quoted: m });
+        
+        const stickerMetadata = {
+            pack: `𝐈𝐭𝐬𝐮𝐤𝐢𝐁𝐨𝐭-𝐌𝐃`,
+            author: `𝗦𝗼𝗹𝗶𝗰𝗶𝘁𝗮𝗱𝗼 𝗽𝗼𝗿: ${username}\n𝗖𝗿𝗲𝗮𝗱𝗼𝗿: 𝗟𝗲𝗼𝗗𝗲𝘃`,
+            categories: ['🤣', '🎉'],
+            type: StickerTypes.FULL
+        };
+
+        const sticker = new Sticker(stickerBuffer, stickerMetadata);
+        const stickerWebp = await sticker.toMessage();
+
+        await conn.sendMessage(m.chat, stickerWebp, { quoted: m });
 
         setTimeout(() => {
             try {
-                if (fs.existsSync(tempVideoPath)) fs.unlinkSync(tempVideoPath);
-                if (fs.existsSync(tempStickerPath)) fs.unlinkSync(tempStickerPath);
+                if (tempStickerPath && fs.existsSync(tempStickerPath)) fs.unlinkSync(tempStickerPath);
             } catch (e) {}
-        }, 30000);
+        }, 10000);
 
     } catch (error) {
+        console.error('Error en comando brat:', error);
+        
         try {
-            if (fs.existsSync(tempVideoPath)) fs.unlinkSync(tempVideoPath);
-            if (fs.existsSync(tempStickerPath)) fs.unlinkSync(tempStickerPath);
+            if (tempStickerPath && fs.existsSync(tempStickerPath)) fs.unlinkSync(tempStickerPath);
         } catch (cleanError) {}
         
         await m.react('❌');
         
         let errorMessage = '> `❌ ERROR ENCONTRADO`\n\n';
         
-        if (error.message.includes('insuficientes') || error.message.includes('vacío')) {
+        if (error.message.includes('Ambas APIs fallaron')) {
+            errorMessage += '> `📝 Todos los servicios están temporalmente no disponibles. Intenta más tarde.`';
+        } else if (error.message.includes('insuficientes') || error.message.includes('vacío')) {
             errorMessage += '> `📝 El servicio devolvió un archivo vacío o corrupto.`';
         } else if (error.code === 'ECONNABORTED') {
             errorMessage += '> `⏰ Tiempo de espera agotado. Intenta de nuevo.`';
@@ -136,7 +180,7 @@ let handler = async (m, { conn, text, args, usedPrefix, command }) => {
         } else if (error.request) {
             errorMessage += '> `📝 No se pudo conectar con el servicio.`';
         } else if (error.message.includes('ffmpeg')) {
-            errorMessage += '> `📝 Error al procesar el video.`';
+            errorMessage += '> `📝 Error al procesar la imagen.`';
         } else {
             errorMessage += '> `📝 ' + error.message + '`';
         }

@@ -10,25 +10,36 @@ import { dirname } from 'path'
 
 global.__dirname = (url) => dirname(fileURLToPath(url));
 
-// Configuraciones principales
-global.roowner = ['573212042172', true]
-global.julioDev = ['573212042172']
-global.rowner = ['573212042172']
-global.owner = [
-   ['573212042172', ' 𝙎𝙚𝙩𝙝𝙜𝙭9  🦇🩸', true],
-   ['573224770981', '𝙅𝙪𝙡𝙞𝙤 - 𝙎𝙚𝙩𝙝𝙜𝙭9  🦇🩸', true],
-  
+
+//aquí los retirados👑🥀
+global.retirado = [
+['5216641784469','BrayanOFC',true]
 ];
 
-global.mods = ['573212042172', '573224770981']
-global.suittag = ['573212042172', '573224770981']
-global.prems = ['573212042172', '573224770981']
+/*habrán comandos especiales para los retirados algo q los identifique | nota ustedes pondrán los coamndos y q solo funcione para los retirados*/
+
+// Configuraciones principales
+global.roowner = ['57212042172', '146282324721715']
+global.owner = [
+   ['573133374132', 'YO SOY YO', true],
+   ['573212042172', 'Julio Duran', true],
+   ['50493732693', 'Ado 🐢', true],
+   ['5216671548329', 'Legna', true],
+   ['50496228919', '𝐒𝐨𝐩𝐨𝐫𝐭𝐞 𝐱 𝐒𝐭𝐚𝐟𝐟 𝐈𝐭𝐬𝐮𝐤𝐢 👨🏻‍💻👑', true],
+   ['595972314588', '۪〬.࠭⤿ 👑 ⋅ 𝘿𝙖𝙫𝙞𝙙   𝙭𝙯𝙨𝙮', true],
+   ['573187418668', '𝙇𝙚𝙤   𝙭𝙯𝙨𝙮  🦇🩸', true],
+   ['5216641784469', 'BrayanOFC', true],
+   ];
+
+global.mods = ['573212042172', '573187418668', '595972314588', '51921826291']
+global.suittag = ['573212042172', '595972314588', '51921826291']
+global.prems = ['573212042172', '595972314588', '51921826291', '5216671548329']
 
 // Información del bot 
 global.libreria = 'Baileys'
 global.baileys = 'V 6.7.9'
 global.languaje = 'Español'
-global.vs = '4.3.1'
+global.vs = '7.5.2'
 global.vsJB = '5.0'
 global.nameqr = 'Itsukiqr'
 global.namebot = 'Itsuki-IA'
@@ -38,18 +49,18 @@ global.ItsukiJadibts = true
 global.Choso = true
 global.prefix = ['.', '!', '/' , '#', '%']
 global.apikey = 'ItsukiNakanoIA'
-global.botNumber = '18482389332'
+global.botNumber = '146282324721715'
 // Números y settings globales para varios códigos
 global.packname = '𝗟𝗮 𝗠𝗲𝗷𝗼𝗿 𝗕𝗼𝘁 𝗗𝗲 𝗪𝗵𝗮𝘁𝘀𝗮𝗽𝗽 🫰🏻🤖'
-global.botname = '🧋 ItsukixSETHGX9 🧋'
-global.wm = '© ItsukixSETHGX9 '
+global.botname = '🧋 𝐈 𝐓 𝐒 𝐔 𝐊 𝐈 - 𝐍 𝐄 𝐖 ❄️'
+global.wm = '© Julio'
 global.wm3 = '⫹⫺ 𝙈𝙪𝙡𝙩𝙞-𝘿𝙚𝙫𝙞𝙘𝙚 💻'
-global.author = '👑 ᗰᗩᗪᗴ ᗷY SETHGX0 🧃'
-global.dev = '© 𝙾𝚆𝙽𝙴𝚁-JULIO 𝙳𝙴𝚅 👑'
-global.textbot = 'ItsukixSETHGX9|IAV3 JulioDev'
-global.etiqueta = '@julio/sethgx9'
-global.gt = '© 𝐂𝐫𝐞𝐚𝐝𝐨 𝐏𝐨𝐫 JulioDev AGG-𝐂𝐡𝐚𝐧 𝐓𝐡𝐞 𝐁𝐞𝐬𝐭 𝐁𝐨𝐭𝐬 𝐎𝐟 𝐖𝐡𝐚𝐭𝐬𝐚𝐩𝐩 🤖👑'
-global.me = '🌨️ ITSUKI 𝙼𝙴𝚆 𝚄𝙿𝙳𝙰𝚃𝙴 ☃️'
+global.author = '👑 ᗰᗩᗪᗴ ᗷY Julio 🧃'
+global.dev = '© 𝙾𝚆𝙽𝙴𝚁-𝙻𝙴𝙾 𝙳𝙴𝚅 👑'
+global.textbot = 'Itsuki-Nakano|IAV3 Julio'
+global.etiqueta = '@Julio Xzsy'
+global.gt = '© 𝐂𝐫𝐞𝐚𝐝𝐨 𝐏𝐨𝐫 Julio𝐃𝐞𝐯 𝐈𝐭𝐬𝐮𝐤𝐢-𝐂𝐡𝐚𝐧 𝐓𝐡𝐞 𝐁𝐞𝐬𝐭 𝐁𝐨𝐭𝐬 𝐎𝐟 𝐖𝐡𝐚𝐭𝐬𝐚𝐩𝐩 🤖👑'
+global.me = '🌨️ 𝙸𝚃𝚂𝚄𝙺𝙸 𝙽𝙰𝙺𝙰𝙽𝙾 𝙼𝙴𝚆 𝚄𝙿𝙳𝙰𝚃𝙴 ☃️'
 global.listo = '*Aqui tiene*'
 global.moneda = 'Yenes'
 global.multiplier = 69

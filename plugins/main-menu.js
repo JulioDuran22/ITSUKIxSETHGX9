@@ -17,11 +17,11 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
     let neww = performance.now()
     let speed = (neww - old).toFixed(4)
 
-    let menuText = `> 👋🏻 .ৎ˚₊‧  *Hola*, @${m.sender.split('@')[0]} *Pasa Feliz Navidad ❄️*.
+    let menuText = `> 👋🏻 .ৎ˚₊‧  *Hola*, +${m.sender.split('@')[0]} *Pasa Feliz Navidad ❄️*.
 
  ִ \`I N F O - B O T\` ! ୧ ֹ 
    
-> ੭੭﹙❐﹚ \`bot :\` *soy ItsukiV3*
+> ੭੭﹙❐﹚ \`bot :\` *ItsukiV3*
 > ੭੭﹙❐﹚ \`Ping :\` *${speed} ms*
 > ੭੭﹙❐﹚ \`Uptime :\` *${await getUptime()}*
 > ੭੭﹙❐﹚ \`RAM :\` *${(process.memoryUsage().rss / 1024 / 1024).toFixed(2)}* MB
@@ -32,19 +32,20 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
 `
 
     const categories = {
-      'NAKANO-INFO': ['main', 'info'],
-      'INTELIGENCIA': ['bots', 'ia'],
-      'JUEGOS': ['game', 'gacha'],
-      'FREE FIRE y TOPS': ['free', 'funn'],
-      'ECONOMÍA': ['economy', 'rpgnk'],
-      'GRUPOS': ['group'],
-      'DESCARGAS': ['downloader'],
-      'MULTIMEDIA': ['sticker', 'audio', 'anime'],
-      'TOOLS': ['tools', 'advanced'],
-      'BÚSQUEDA': ['search', 'buscador'],
-      'NK-PREM': ['fun', 'premium', 'social', 'custom'],
-      'NK-OWNER': ['owner', 'creador'],
-    }
+  'NAKANO-INFO': ['main', 'info'],
+  'INTELIGENCIA': ['bots', 'ia'],
+  'JUEGOS': ['game', 'gacha'],
+  'ECONOMÍA': ['economy', 'rpgnk'],
+  "FREE Y TOPS": ["free", "funn"],
+  'GRUPOS': ['group'],
+  'DESCARGAS': ['downloader'],
+  'MULTIMEDIA': ['sticker', 'audio', 'anime'],
+  'TOOLS': ['tools', 'advanced'],
+  'BÚSQUEDA': ['search', 'buscador'],
+  'NK-PREM': ['fun', 'premium', 'social', 'custom'],
+  'SUB-BOT': ['serbot'],
+  'NK-OWNER': ['owner', 'creador'],
+}
 
     for (let catName in categories) {
       let catTags = categories[catName]
@@ -54,13 +55,13 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
         menuText += `> ꒰⌢ ʚ˚₊‧ » \`${catName}\` «\n`
         let uniqueCommands = [...new Set(comandos.flatMap(menu => menu.help))]
         for (let cmd of uniqueCommands) {
-          menuText += `> ⤷ ﹙✰﹚ ❄︎ \`\`\`${_p}${cmd}\`\`\`\n`
+          menuText += `> ੭੭﹙⤷﹚ ❄︎ \`\`\`${_p}${cmd}\`\`\`\n`
         }
         menuText += `> ︶꒦︶꒷︶︶꒷꒦︶︶︶꒷꒦‧ ₊˚・\n\n`
       }
     }
 
-    menuText += `> *‐ ダ mᥲძᥱ ᑲᥡ SETHGX9 🧋*`
+    menuText += `> *‐ ダ mᥲძᥱ ᑲᥡ Julio*`
 
     await conn.sendMessage(m.chat, { react: { text: '❄️', key: m.key } })
 
@@ -78,7 +79,7 @@ let handler = async (m, { conn, usedPrefix: _p }) => {
         name: 'cta_url',
         buttonParamsJson: JSON.stringify({ 
           display_text: '💻 ʜᴏsᴛɪɴɢ-ᴏғɪᴄɪᴀʟ', 
-          url: 'https://chat.whatsapp.com/CT8JP1E0JshDtdVz2yaEKy?mode=hqrt2' 
+          url: 'https://whatsapp.com/channel/0029VbBc97b2ZjCtQ6FSCe1h' 
         })
       }
     ]

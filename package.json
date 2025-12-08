@@ -1,6 +1,6 @@
 {
-  "name": "Itsuki-Nakano",
-  "version": "6.4.1",
+  "name": "Itsuki-NakanoV3",
+  "version": "7.5.2",
   "type": "module",
   "main": "index.js",
   "scripts": {
@@ -14,6 +14,7 @@
     "@whiskeysockets/baileys": "github:Kone457/bails",
     "awesome-phonenumber": "^5.5.1",
     "axios-cookiejar-support": "^5.0.3",
+    "acrcloud": "^1.4.0",
     "boxen": "^7.1.1",
     "chalk": "^5.3.0",
     "cfonts": "^3.3.0",
@@ -48,7 +49,6 @@
     "lowdb": "^3.0.0",
     "jimp": "^0.16.13",
     "jsdom": "^20.0.1",
-    "acrcloud": "^1.4.0",
     "human-readable": "^0.2.1",
     "hispamemes": "^1.0.7",
     "megajs": "^1.1.3",
