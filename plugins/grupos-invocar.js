@@ -1,14 +1,15 @@
 /* 
 - tagall versión Itsuki Nakano IA  
 - Etiqueta a todos con estilo tsundere vibes 🌸  
-- Con frases aleatorias decoradas ✨
 */
 
 const handler = async (m, { isOwner, isAdmin, conn, text, participants, args, command, usedPrefix }) => {
   if (usedPrefix == 'a' || usedPrefix == 'A') return;
 
   const customEmoji = global.db.data.chats[m.chat]?.customEmoji || '🍓';
-  m.react(customEmoji);
+  // reaccionar al comando
+  try { await conn.sendPresenceUpdate('composing', m.chat); } catch {}
+  try { await m.react(customEmoji); } catch {}
 
   if (!(isAdmin || isOwner)) {
     global.dfail('admin', m, conn);
@@ -31,18 +32,33 @@ const handler = async (m, { isOwner, isAdmin, conn, text, participants, args, co
     ? `「 🌸 𝑰𝑻𝑺𝑼𝑲𝑰𝒙𝑺𝑬𝑻𝑯𝑮𝑿9 dice 🌸 」\n✦ *${pesan}*`
     : `😡 ¡Baka! Presten atención todos de una vez, no me hagan repetirlo. 💢`;
 
+  // Preparamos lista de jids
+  const jids = (participants || []).map(p => p.id ? p.id : (p.jid || p));
+  // Resolvemos nombres en paralelo (conn.getName)
+  const names = await Promise.all(jids.map(async jid => {
+    try {
+      const n = await (conn.getName ? conn.getName(jid) : Promise.resolve(null));
+      return (n || jid.split('@')[0]).toString();
+    } catch {
+      return jid.split('@')[0];
+    }
+  }));
+
   // Texto decorado con marco kawaii 🌸
   let teks = `
 ╭━━━〔 🌸 *INVOCACIÓN GENERAL* 🌸 〕━━━⬣
-┃ 🌟 *Miembros totales:* ${participants.length} 🗣️
+┃ 🌟 *Miembros totales:* ${jids.length} 🗣️
 ┃ 💌 ${oi}
 ╰━━━━━━━━━━━━━━━━━━━━⬣
 
 ╭━━━〔 📌 *ETIQUETADOS* 📌 〕━━━⬣
 `;
 
-  for (const mem of participants) {
-    teks += `┃ ${customEmoji} @${mem.id.split('@')[0]}\n`;
+  for (let i = 0; i < jids.length; i++) {
+    const jid = jids[i];
+    const short = jid.split('@')[0];
+    const nice = names[i] || short;
+    teks += `┃ ${customEmoji} ${nice} (@${short})\n`;
   }
 
   teks += `╰━━━━━━━━━━━━━━━━━━━━⬣
@@ -57,8 +73,8 @@ const handler = async (m, { isOwner, isAdmin, conn, text, participants, args, co
 
   await conn.sendMessage(m.chat, { 
     image: { url: imgUrl }, 
-    caption: teks, 
-    mentions: participants.map((a) => a.id) 
+    caption: teks.trim(), 
+    mentions: jids
   });
 };
 
