@@ -18,6 +18,8 @@ const delay = (ms) =>
     }, ms)
   );
 
+ 
+
 const globalPrefixes = [".", "/", "~", "#", ";"];
 
 const detectPrefix = (text, customPrefix = null) => {
@@ -513,6 +515,7 @@ export async function handler(chatUpdate) {
     }
 
     let usedPrefix;
+    /*
     const groupMetadata = m.isGroup
       ? {
           ...(this.chats?.[m.chat]?.metadata ||
@@ -541,55 +544,89 @@ export async function handler(chatUpdate) {
       lid: participant.lid,
       admin: participant.admin,
     }));
-    // --- pega esto después de construir participantsNormalized / groupMetadata ---
-this._lidResolveCache = this._lidResolveCache || new Map()
+    */
 
-async function resolveLid(lidJid, ctx) {
-  if (!lidJid) return lidJid
-  if (!/@lid$/i.test(lidJid)) return lidJid
-  const num = String(lidJid).split(':')[0].replace(/[^0-9]/g, '')
-  if (ctx._lidResolveCache.has(num)) return ctx._lidResolveCache.get(num)
-
-  // quick lookup en participantsNormalized si lo tienes disponible
-  const quick = (typeof participantsNormalized !== 'undefined')
-    ? participantsNormalized.find(p => p.widNum === num)
-    : null
-  if (quick && /@s\.whatsapp\.net$/.test(quick.wid || quick.id || '')) {
-    ctx._lidResolveCache.set(num, quick.wid || quick.id)
-    return quick.wid || quick.id
-  }
-
-  // iterar participantes buscando coincidencia mediante onWhatsApp
-  if (typeof ctx.onWhatsApp === 'function') {
-    for (const p of (participants || [])) {
-      const real = p.jid || p.id || p
-      if (!real) continue
-      try {
-        const waInfo = await ctx.onWhatsApp(real)
-        const lidField = waInfo?.[0]?.lid
-        if (lidField && String(lidField).replace(/[^0-9]/g, '') === num) {
-          ctx._lidResolveCache.set(num, real)
-          return real
-        }
-      } catch {}
-    }
-  }
-
-  // fallback
-  const fallback = num ? `${num}@s.whatsapp.net` : lidJid
-  ctx._lidResolveCache.set(num, fallback)
-  return fallback
+    // --- utilidades (pegalo aquí, solo una vez) ---
+const normalizeJid = jid => {
+  if (!jid) return ''
+  let base = String(jid).split('@')[0]
+  base = base.split(':')[0]
+  return base.replace(/[^0-9]/g, '')
 }
+const cleanJid = jid => (jid ? String(jid).split(':')[0] : '')
+// ------------------------------------------------
+
+    // --- pega esto después de construir participantsNormalized / groupMetadata ---
+
+this._groupCache = this._groupCache || {}
+let groupMetadata = {}
+if (m.isGroup) {
+  const now = Date.now()
+  const maxAge = 30_000 // 30s de vida para la metadata
+  const cached = this._groupCache[m.chat]
+  if (!cached || (now - cached.ts) > maxAge || !cached.data || !cached.data.participants) {
+    groupMetadata = await this.groupMetadata(m.chat).catch(_ => (cached?.data || {})) || {}
+    this._groupCache[m.chat] = { data: groupMetadata, ts: now }
+  } else {
+    groupMetadata = cached.data
+  }
+}
+const participants = (m.isGroup ? groupMetadata.participants : []) || []
+
+
+const participantsNormalized = participants.map(participant => {
+  const rawId = participant.id || ''
+  const wid = participant.jid || rawId
+  return {
+    id: rawId,
+    wid,
+    widNum: normalizeJid(wid),
+    admin: participant.admin ? 'admin' : null,
+    isAdmin: !!participant.admin
+  }
+})
+
 
 if (Array.isArray(m.mentionedJid) && m.isGroup && m.mentionedJid.some(j => /@lid$/i.test(j))) {
   try {
+    
+    this._lidResolveCache = this._lidResolveCache || new Map()
+    async function resolveLid(lidJid, ctx) {
+      if (!lidJid) return lidJid
+      if (!/@lid$/i.test(lidJid)) return lidJid
+      const num = normalizeJid(lidJid)
+      if (ctx._lidResolveCache.has(num)) return ctx._lidResolveCache.get(num)
+      
+      const quick = participantsNormalized.find(p => p.widNum === num)
+      if (quick && /@s\.whatsapp\.net$/.test(quick.wid)) {
+        ctx._lidResolveCache.set(num, quick.wid)
+        return quick.wid
+      }
+      
+      for (const p of participantsNormalized) {
+        const real = p.wid || p.id
+        if (!real) continue
+        try {
+          const waInfo = await ctx.onWhatsApp(real)
+          const lidField = waInfo?.[0]?.lid
+          if (lidField && normalizeJid(lidField) === num) {
+            ctx._lidResolveCache.set(num, real)
+            return real
+          }
+        } catch {}
+      }
+      
+      const fallback = num ? `${num}@s.whatsapp.net` : lidJid
+      ctx._lidResolveCache.set(num, fallback)
+      return fallback
+    }
     const resolved = []
-    for (const jid of m.mentionedJid) resolved.push(await resolveLid(jid, this))
-
-    // reemplazamos m.mentionedJid por las JIDs resueltas
+    for (const jid of m.mentionedJid) {
+      resolved.push(await resolveLid(jid, this))
+    }
+    
     try { m.mentionedJid = resolved } catch {}
-
-    // también actualizamos contextInfo.mentionedJid en todos los sub-objetos del mensaje
+    
     if (m.message) {
       for (const k of Object.keys(m.message)) {
         const msgObj = m.message[k]
@@ -598,12 +635,22 @@ if (Array.isArray(m.mentionedJid) && m.isGroup && m.mentionedJid.some(j => /@lid
         }
       }
     }
-
+    
     m._mentionedJidResolved = resolved
   } catch (e) {
     console.error('Error normalizando menciones @lid:', e)
   }
 }
+
+
+const senderNum = normalizeJid(m.sender)
+const senderRaw = m.sender
+const botNumsRaw = [this.user.jid, this.user.lid].filter(Boolean)
+const botNums = botNumsRaw.map(j => normalizeJid(j))
+let participantUser = m.isGroup ? participantsNormalized.find(p => p.widNum === senderNum || p.wid === senderRaw) : null
+let botParticipant = m.isGroup ? participantsNormalized.find(p => botNums.includes(p.widNum)) : null
+
+//sistema botprimario
 
     const userGroup =
       (m.isGroup
