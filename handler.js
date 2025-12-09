@@ -36,9 +36,7 @@ resolve()
 
 // LISTA DE PREFIJOS (SOLO LOS QUE SOLICITASTE)
 const globalPrefixes = [
-  '.', ',', '!', '#', '$', '%', '&', '*',
-  '-', '_', '+', '=', '|', '\\', '/', '~',
-  '>', '<', '^', '?', ':', ';'
+  '.', '/', '#'
 ];
 
 // PREFIJO POR DEFECTO (REGEX MEJORADO)
