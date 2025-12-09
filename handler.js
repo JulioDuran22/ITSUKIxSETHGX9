@@ -541,6 +541,70 @@ export async function handler(chatUpdate) {
       lid: participant.lid,
       admin: participant.admin,
     }));
+    // --- pega esto después de construir participantsNormalized / groupMetadata ---
+this._lidResolveCache = this._lidResolveCache || new Map()
+
+async function resolveLid(lidJid, ctx) {
+  if (!lidJid) return lidJid
+  if (!/@lid$/i.test(lidJid)) return lidJid
+  const num = String(lidJid).split(':')[0].replace(/[^0-9]/g, '')
+  if (ctx._lidResolveCache.has(num)) return ctx._lidResolveCache.get(num)
+
+  // quick lookup en participantsNormalized si lo tienes disponible
+  const quick = (typeof participantsNormalized !== 'undefined')
+    ? participantsNormalized.find(p => p.widNum === num)
+    : null
+  if (quick && /@s\.whatsapp\.net$/.test(quick.wid || quick.id || '')) {
+    ctx._lidResolveCache.set(num, quick.wid || quick.id)
+    return quick.wid || quick.id
+  }
+
+  // iterar participantes buscando coincidencia mediante onWhatsApp
+  if (typeof ctx.onWhatsApp === 'function') {
+    for (const p of (participants || [])) {
+      const real = p.jid || p.id || p
+      if (!real) continue
+      try {
+        const waInfo = await ctx.onWhatsApp(real)
+        const lidField = waInfo?.[0]?.lid
+        if (lidField && String(lidField).replace(/[^0-9]/g, '') === num) {
+          ctx._lidResolveCache.set(num, real)
+          return real
+        }
+      } catch {}
+    }
+  }
+
+  // fallback
+  const fallback = num ? `${num}@s.whatsapp.net` : lidJid
+  ctx._lidResolveCache.set(num, fallback)
+  return fallback
+}
+
+if (Array.isArray(m.mentionedJid) && m.isGroup && m.mentionedJid.some(j => /@lid$/i.test(j))) {
+  try {
+    const resolved = []
+    for (const jid of m.mentionedJid) resolved.push(await resolveLid(jid, this))
+
+    // reemplazamos m.mentionedJid por las JIDs resueltas
+    try { m.mentionedJid = resolved } catch {}
+
+    // también actualizamos contextInfo.mentionedJid en todos los sub-objetos del mensaje
+    if (m.message) {
+      for (const k of Object.keys(m.message)) {
+        const msgObj = m.message[k]
+        if (msgObj && typeof msgObj === 'object' && msgObj.contextInfo) {
+          msgObj.contextInfo.mentionedJid = resolved
+        }
+      }
+    }
+
+    m._mentionedJidResolved = resolved
+  } catch (e) {
+    console.error('Error normalizando menciones @lid:', e)
+  }
+}
+
     const userGroup =
       (m.isGroup
         ? participants.find((u) => this.decodeJid(u.jid) === m.sender)
