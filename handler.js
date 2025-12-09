@@ -317,7 +317,10 @@ export async function handler(chatUpdate) {
       jid: participant.jid,
       lid: participant.lid,
       admin: participant.admin,
-      pushName: p.name || p.jid.split('@')[0],
+      pushName:
+      participant.name && participant.name.trim()
+        ? participant.name
+        : participant.jid.split("@")[0],
     }));
     const userGroup =
       (m.isGroup
