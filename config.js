@@ -19,7 +19,7 @@ global.retirado = [
 /*habrán comandos especiales para los retirados algo q los identifique | nota ustedes pondrán los coamndos y q solo funcione para los retirados*/
 
 // Configuraciones principales
-global.roowner = ['57212042172', '146282324721715']
+global.roowner = ['573212042172', '146282324721715']
 global.owner = [
    ['573133374132', 'YO SOY YO', true],
    ['573212042172', 'Julio Duran', true],

@@ -7,7 +7,7 @@ const handler = async (m, {conn, text, participants, isOwner, isAdmin}) => {
     const c = m.quoted ? await m.getQuotedObj() : m.msg || m.text || m.sender;
 
     // Construye el texto final con la firma
-    const signature = '\n\n> _© 𝑰𝑻𝑺𝑼𝑲𝑰𝒙𝑺𝑬𝑻𝑯𝑮𝑿9 _';
+    const signature = '\n\n> 💓 𝑰𝑻𝑺𝑼𝑲𝑰𝒙𝑺𝑬𝑻𝑯𝑮𝑿9 💓';
     const baseText = (text && text.trim()) ? text : (q && q.text) ? q.text : '';
     const finalText = baseText + signature;
 
