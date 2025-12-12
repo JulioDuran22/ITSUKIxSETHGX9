@@ -11,7 +11,7 @@
     "node": ">=18.18"
   },
   "dependencies": {
-    "@whiskeysockets/baileys": "github:AkiraDevX/baileys",
+    "@whiskeysockets/baileys": "github:Kone457/bails",
     "awesome-phonenumber": "^5.5.1",
     "axios-cookiejar-support": "^5.0.3",
     "acrcloud": "^1.4.0",
