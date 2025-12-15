@@ -263,6 +263,7 @@ prefix: null,
 prefixes: []
 
 }
+if (!global.db.data.settings) global.db.data.settings = {}
 let settings = global.db.data.settings[this.user.jid]
 if (typeof settings !== "object") global.db.data.settings[this.user.jid] = {}
 if (settings) {
