@@ -420,42 +420,61 @@ async function startBot() {
     }
   })
   sock.ev.on('group-participants.update', async (ev) => {
-  try {
-    const { id, participants, action } = ev || {}
-    if (!id || !participants?.length) return
-    if (!['add', 'remove'].includes(action)) return
+    try {
+      const { id, participants, action } = ev || {}
+      if (!id || !participants || !participants.length) return
+      const db = global.db?.data
+      const chatCfg = db?.chats?.[id] || { welcome: true }
+      if (!chatCfg.welcome) return
 
-    global.db.data.chats[id] = global.db.data.chats[id] || { welcome: true }
-    const chatCfg = global.db.data.chats[id]
-    if (!chatCfg.welcome) return
+      const type = action === 'add' ? 'welcome' : (action === 'remove' ? 'bye' : null)
+      if (!type) return
 
-    const type = action === 'add' ? 'welcome' : 'bye'
-
-    const botJid = sock?.user?.id ? jidNormalizedUser(sock.user.id) : ''
-    if (type === 'bye' && botJid && participants.map(p => jidNormalizedUser(p)).includes(botJid)) {
-      return
-    }
-
-    let meta = null
-    try { meta = await sock.groupMetadata(id) } catch {}
-    const groupName = meta?.subject || ''
-
-    for (const p of participants) {
-      let userName = 'Miembro'
-      try { userName = await sock.getName(p) } catch {}
-
-      await sendWelcomeOrBye(sock, {
-        jid: id,
-        userName,
-        groupName,
-        type,
-        participant: p
+      const botIdRaw = sock?.user?.id || ''
+      const botId = botIdRaw ? jidNormalizedUser(botIdRaw) : ''
+      const normalizedParts = participants.map(p => {
+        try { return jidNormalizedUser(p) } catch { return p }
       })
-    }
-  } catch (e) {
-    console.error('[WelcomeEvent]', e)
-  }
-})
+      if (type === 'bye' && botId && normalizedParts.includes(botId)) {
+        return 
+      }
+
+      let meta = null
+      if (typeof sock.groupMetadata === 'function') {
+        try { meta = await sock.groupMetadata(id) } catch { meta = null }
+      }
+      const groupName = meta?.subject || ''
+
+      for (const p of participants) {
+        try {
+          let userName = 'Miembro'
+          try { userName = await Promise.resolve(sock.getName?.(p) ?? 'Miembro') } catch { userName = 'Miembro' }
+          const botIdRaw = sock?.user?.id || ''
+          const botIdJoin = botIdRaw ? jidNormalizedUser(botIdRaw) : ''
+          if (type === 'welcome' && botIdJoin && jidNormalizedUser(p) === botIdJoin) {
+            try {
+              const cfgDefaults = (global.chatDefaults && typeof global.chatDefaults === 'object') ? global.chatDefaults : {}
+              global.db = global.db || { data: { users: {}, chats: {}, settings: {}, stats: {} } }
+              global.db.data = global.db.data || { users: {}, chats: {}, settings: {}, stats: {} }
+              global.db.data.chats = global.db.data.chats || {}
+              global.db.data.chats[id] = global.db.data.chats[id] || {}
+              for (const [k,v] of Object.entries(cfgDefaults)) {
+                if (!(k in global.db.data.chats[id])) global.db.data.chats[id][k] = v
+              }
+              if (!('bienvenida' in global.db.data.chats[id]) && ('welcome' in cfgDefaults)) global.db.data.chats[id].bienvenida = !!cfgDefaults.welcome
+            } catch {}
+          }
+          await sendWelcomeOrBye(sock, { jid: id, userName, groupName, type: type === 'bye' ? 'bye' : 'welcome', participant: p })
+        } catch (e) {
+          const code = e?.data || e?.output?.statusCode || e?.output?.payload?.statusCode
+          if (code === 403) {
+            continue
+          }
+          console.error('[WelcomeEvent]', e)
+        }
+      }
+    } catch (e) { console.error('[WelcomeEvent]', e) }
+  })
 }
 
   // LISTENER DE ACTUALIZACIONES DE GRUPO (SIN BIENVENIDAS)
